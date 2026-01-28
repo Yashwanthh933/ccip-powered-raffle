@@ -17,6 +17,7 @@ contract Raffle is ReentrancyGuard, VRFConsumerBaseV2Plus {
     error Raffle_NoRandomNumbersAvailable();
     error Raffle_UpkeepNotNeeded();
     error Raffle_RandomNumberNotReady();
+    error Raffle_MaximumEntriesReached();
 
     enum RaffleState {
         OPEN,
@@ -46,8 +47,10 @@ contract Raffle is ReentrancyGuard, VRFConsumerBaseV2Plus {
     uint256 private s_lastTimeStamp;
     address private s_recentWinner;
 
-    address[] private s_players;
     RaffleState private s_raffleState;
+    mapping(uint256 => address) s_entryToPlayer;
+    uint256 s_totalEntries;
+    uint256 private s_maxPlayers = 100; //for now set to 100 later add controlled updation of maximum players
     mapping(address => uint256) s_numberOfTimesUserEntered;
     IERCToken private immutable i_ercToken;
 
@@ -87,7 +90,7 @@ contract Raffle is ReentrancyGuard, VRFConsumerBaseV2Plus {
             revert Raffle_raffleNotOpened();
         if (msg.value < i_entranceFee)
             revert Raffle_EntranceFeeRequired(msg.value, i_entranceFee);
-
+        if(s_totalEntries >= s_maxPlayers) revert Raffle_MaximumEntriesReached();
         uint256 discountAmount =0;
         //  If user qualifies for discount, use pre-generated random number
         if (s_numberOfTimesUserEntered[msg.sender] >= 3) {
@@ -101,8 +104,8 @@ contract Raffle is ReentrancyGuard, VRFConsumerBaseV2Plus {
                 _requestRandomNumbersForDiscounts();
             }
         }
-        
-        s_players.push(msg.sender);
+        s_entryToPlayer[s_totalEntries] = msg.sender;
+        s_totalEntries++;
         s_numberOfTimesUserEntered[msg.sender] += 1;
         emit PlayerEntered(msg.sender, discountAmount);
     }
@@ -111,7 +114,7 @@ contract Raffle is ReentrancyGuard, VRFConsumerBaseV2Plus {
         bytes calldata /* */
     ) external view returns (bool upKeepNeeded, bytes memory) {
         bool timePassed = (block.timestamp - s_lastTimeStamp) >= i_interval;
-        bool hasPlayers = s_players.length > 0;
+        bool hasPlayers = s_totalEntries > 0;
         bool isOpen = (s_raffleState == RaffleState.OPEN);
         bool hasBalance = address(this).balance > 0;
 
@@ -199,22 +202,22 @@ contract Raffle is ReentrancyGuard, VRFConsumerBaseV2Plus {
     function _selectWinner() internal {
         if(s_winnerRandomReady) revert Raffle_RandomNumberNotReady();
         
-        uint256 winnerIndex = s_winnerRandomNumber % s_players.length;
-        address winner = s_players[winnerIndex];
+        uint256 winnerIndex = s_winnerRandomNumber % s_totalEntries;
+        address winner = s_entryToPlayer[winnerIndex];
         s_recentWinner = winner;
         
         uint256 winnerPrize = address(this).balance;
         
         // Reset state
-        s_players = new address[](0);
+        s_totalEntries = 0;
         s_lastTimeStamp = block.timestamp;
         s_raffleState = RaffleState.OPEN;
         s_winnerRandomReady = false;
-        
+        emit WinnerPicked(winner, block.timestamp);
         // Mint tokens to winner (ETH stays in contract for redemption)
         i_ercToken.mint(winner, winnerPrize);
         
-        emit WinnerPicked(winner, block.timestamp);
+        
     }
 
     ////////////////////////
@@ -242,30 +245,10 @@ contract Raffle is ReentrancyGuard, VRFConsumerBaseV2Plus {
     }
     
     function getPlayerCount() external view returns (uint256) {
-        return s_players.length;
+        return s_totalEntries;
     }
     
     function getUserEntryCount(address user) external view returns (uint256) {
         return s_numberOfTimesUserEntered[user];
     }
 }
-// ```
-
-// ---
-
-// ## **How The Fixed Version Works:**
-
-// ### **🎲 Discount System (Using Random Queue):**
-// ```
-// 1. Contract deployed → Request 10 random numbers immediately
-// 2. User enters (3+ times) → Use next number from queue
-// 3. Queue low (< 3 left) → Request 10 more numbers
-// 4. Always have random numbers ready for instant discounts!
-// ```
-
-// ### **🏆 Winner Selection (Using Dedicated Random):**
-// ```
-// 1. performUpKeep() called → Lock raffle, request 1 random number
-// 2. fulfillRandomWords() called → Receive random number
-// 3. Automatically calls _selectWinner() → Pick winner with random number
-// 4. Mint tokens, unlock raffle
