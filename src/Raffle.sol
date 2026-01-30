@@ -112,14 +112,14 @@ contract Raffle is ReentrancyGuard, VRFConsumerBaseV2Plus {
 
     function checkUpkeep(
         bytes calldata /* */
-    ) external view returns (bool upKeepNeeded, bytes memory) {
+    ) external view returns (bool upKeepNeeded, bytes memory/** */) {
         bool timePassed = (block.timestamp - s_lastTimeStamp) >= i_interval;
         bool hasPlayers = s_totalEntries > 0;
         bool isOpen = (s_raffleState == RaffleState.OPEN);
         bool hasBalance = address(this).balance > 0;
 
         upKeepNeeded = timePassed && hasPlayers && isOpen && hasBalance;
-        return (upKeepNeeded, "");
+        return (upKeepNeeded,"");
     }
 
     function performUpKeep() external {

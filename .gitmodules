@@ -13,3 +13,6 @@
 [submodule "lib/ccip"]
 	path = lib/ccip
 	url = https://github.com/smartcontractkit/ccip
+[submodule "lib/foundry-devops"]
+	path = lib/foundry-devops
+	url = https://github.com/Cyfrin/foundry-devops
