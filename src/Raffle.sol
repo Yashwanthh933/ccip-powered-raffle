@@ -200,7 +200,7 @@ contract Raffle is ReentrancyGuard, VRFConsumerBaseV2Plus {
 
     //  Separate function to select winner (called after random number arrives)
     function _selectWinner() internal {
-        if(s_winnerRandomReady) revert Raffle_RandomNumberNotReady();
+        if(!s_winnerRandomReady) revert Raffle_RandomNumberNotReady();
         
         uint256 winnerIndex = s_winnerRandomNumber % s_totalEntries;
         address winner = s_entryToPlayer[winnerIndex];

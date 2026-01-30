@@ -5,6 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import{AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import{ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
+
 contract ERCToken is ERC20,ERC20Burnable,Ownable,AccessControl
 {
 
@@ -26,6 +27,11 @@ contract ERCToken is ERC20,ERC20Burnable,Ownable,AccessControl
     function mint(address to,uint256 amount) external onlyRole(MINT_AND_BURN_ROLE)
     {
         _mint(to,amount);
+    }
+    function burnFrom(address from,uint256 amount) external onlyRole(MINT_AND_BURN_ROLE)
+    {
+        _burn(from, amount);
+
     }
     function decimals() public pure override returns(uint8)
     {

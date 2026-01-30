@@ -18,6 +18,7 @@ contract DeployTokenAndPool is Script
 
         ERCToken token = new ERCToken();
         ERCTokenPool tokenPool = new ERCTokenPool(address(token),new address[](0),networkDetails.rmnProxyAddress,networkDetails.routerAddress);
+        token.grantMintAndBurnRole(address(tokenPool));
         RegistryModuleOwnerCustom(networkDetails.registryModuleOwnerCustomAddress).registerAdminViaOwner(address(token));
         TokenAdminRegistry(networkDetails.tokenAdminRegistryAddress).acceptAdminRole(address(token));
         TokenAdminRegistry(networkDetails.tokenAdminRegistryAddress).setPool(address(token),address(tokenPool));

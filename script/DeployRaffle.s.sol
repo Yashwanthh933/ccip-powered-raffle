@@ -8,7 +8,7 @@ import{CreateSubscription,FundSubscription,AddConsumer} from "script/Interaction
 
 contract DeployRaffle is Script
 {
-    function run( address tokenAddress) public returns(Raffle raffle)
+    function run(address tokenAddress) public returns(Raffle raffle)
     {
         // get all the reqired details from the helperConfig
         HelperConfig helperConfig = new HelperConfig();
